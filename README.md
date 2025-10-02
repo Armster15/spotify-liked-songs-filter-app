@@ -1,3 +1,10 @@
+# I did not write a single line of code. This was 100% written by Claude Code in ~15-20 minutes.
+
+The below README is also written by Claude
+
+
+---
+
 # Spotify Liked Songs Analyzer
 
 A web application that lets you analyze, filter, and organize your Spotify liked songs by genre. Built with React, TypeScript, and the Spotify Web API.
