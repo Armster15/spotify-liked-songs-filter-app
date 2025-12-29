@@ -174,7 +174,11 @@ export const getArtistGenres = async (accessToken: string, artistId: string): Pr
   }
 };
 
-export const getMultipleArtists = async (accessToken: string, artistIds: string[]): Promise<{ [id: string]: string[] }> => {
+export const getMultipleArtists = async (
+  accessToken: string,
+  artistIds: string[],
+  onProgress?: (current: number, total: number) => void
+): Promise<{ [id: string]: string[] }> => {
   if (artistIds.length === 0) return {};
 
   try {
@@ -185,6 +189,8 @@ export const getMultipleArtists = async (accessToken: string, artistIds: string[
     }
 
     const genreMap: { [id: string]: string[] } = {};
+    const totalChunks = chunks.length;
+    let completedChunks = 0;
 
     for (const chunk of chunks) {
       const response = await cachedFetch(`https://api.spotify.com/v1/artists?ids=${chunk.join(',')}`, {
@@ -199,11 +205,15 @@ export const getMultipleArtists = async (accessToken: string, artistIds: string[
         // Retry this chunk
         const retryData = await getMultipleArtists(accessToken, chunk);
         Object.assign(genreMap, retryData);
+        completedChunks += 1;
+        onProgress?.(completedChunks, totalChunks);
         continue;
       }
 
       if (!response.ok) {
         console.error(`Failed to fetch artists: ${response.status}`);
+        completedChunks += 1;
+        onProgress?.(completedChunks, totalChunks);
         continue;
       }
 
@@ -211,6 +221,8 @@ export const getMultipleArtists = async (accessToken: string, artistIds: string[
       data.artists.forEach((artist: any) => {
         genreMap[artist.id] = artist.genres || [];
       });
+      completedChunks += 1;
+      onProgress?.(completedChunks, totalChunks);
 
       // Small delay between chunks
       if (chunks.length > 1) {

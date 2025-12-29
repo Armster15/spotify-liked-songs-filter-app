@@ -2,7 +2,6 @@
 
 The below README is also written by Claude
 
-
 ---
 
 # Spotify Liked Songs Analyzer
@@ -21,9 +20,11 @@ A web application that lets you analyze, filter, and organize your Spotify liked
 ## Screenshots
 
 ### Home Page
+
 Clean welcome screen showing your Spotify profile and a start button to begin analysis.
 
 ### Analysis View
+
 Browse all your liked songs with genre tags, filter by specific genres, and export filtered results to new playlists.
 
 ## Tech Stack
@@ -78,6 +79,7 @@ Update `.env` with your Spotify app credentials:
 ```env
 VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
 VITE_SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000/callback
+VITE_LASTFM_API_KEY=your_lastfm_api_key_here  # optional (Last.fm fallback for genres)
 ```
 
 Note: No Client Secret needed! This app uses PKCE (Proof Key for Code Exchange) flow for enhanced security.
@@ -101,18 +103,22 @@ The app will be available at `http://127.0.0.1:3000`
 ## How It Works
 
 ### Authentication Flow
+
 1. User clicks login → redirected to Spotify OAuth
 2. User authorizes → redirected back with authorization code
 3. App exchanges code for access token
 4. Token is stored locally for subsequent API calls
 
 ### Data Processing
+
 1. **Fetch Liked Songs**: Retrieves all user's liked songs via Spotify API
 2. **Get Artist Genres**: Batch fetches genre data for all unique artists
-3. **Smart Caching**: Stores raw API responses in IndexedDB for 24 hours
-4. **Genre Mapping**: Associates each song with all genres from its artists
+3. **Last.fm Fallback (Optional)**: If an artist has no Spotify genres, fetches Last.fm track top tags as "genre-like" labels
+4. **Smart Caching**: Stores raw API responses in IndexedDB for 24 hours
+5. **Genre Mapping**: Associates each song with genres (Spotify first, Last.fm fallback if needed)
 
 ### Filtering & Export
+
 1. **Real-time Filtering**: Filter songs by typing genre names
 2. **Playlist Creation**: Creates new Spotify playlist with filtered songs
 3. **Batch Processing**: Handles large playlists with rate limit management
@@ -138,6 +144,7 @@ src/
 ## API Permissions
 
 The app requests these Spotify permissions:
+
 - `user-library-read` - Read your liked songs
 - `playlist-modify-public` - Create public playlists
 - `playlist-modify-private` - Create private playlists
@@ -145,16 +152,19 @@ The app requests these Spotify permissions:
 ## Development Notes
 
 ### Rate Limiting
+
 - Spotify API has rate limits (~100 requests per minute per user)
 - App includes automatic retry with exponential backoff
 - Requests are cached to minimize API calls
 
 ### Caching Strategy
+
 - Raw API responses cached in IndexedDB for 24 hours
 - Much higher storage quota than localStorage (50MB+)
 - Automatic cache expiry and cleanup
 
 ### Multi-User Support
+
 - Each user gets their own access token and cache
 - No data sharing between users
 - Works with any Spotify account
@@ -182,20 +192,24 @@ This project is for educational purposes. Make sure to comply with Spotify's API
 ## Troubleshooting
 
 ### "Invalid client" error
+
 - Check that your `VITE_SPOTIFY_CLIENT_ID` is correct
 - Ensure the redirect URI in your Spotify app matches exactly: `http://127.0.0.1:3000/callback`
 - No Client Secret needed - PKCE flow handles authentication securely
 
 ### No songs loading
+
 - Check browser console for API errors
 - Verify you have liked songs in your Spotify account
 - Try logging out and back in to refresh the access token
 
 ### Rate limit errors
+
 - The app handles rate limits automatically
 - If you see persistent rate limit errors, wait a few minutes before trying again
 
 ### Cache issues
+
 - Clear your browser data for the site
 - Click "Refresh Data" button in the app
 - Check browser console for IndexedDB errors

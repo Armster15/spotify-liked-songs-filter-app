@@ -12,11 +12,21 @@ interface UserProfile {
 
 interface HomePageProps {
   accessToken: string;
+  enableLastfm: boolean;
+  lastfmAvailable: boolean;
+  onEnableLastfmChange: (enabled: boolean) => void;
   onStartAnalysis: () => void;
   onLogout: () => void;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ accessToken, onStartAnalysis, onLogout }) => {
+export const HomePage: React.FC<HomePageProps> = ({
+  accessToken,
+  enableLastfm,
+  lastfmAvailable,
+  onEnableLastfmChange,
+  onStartAnalysis,
+  onLogout
+}) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -135,6 +145,35 @@ export const HomePage: React.FC<HomePageProps> = ({ accessToken, onStartAnalysis
           <p style={{ fontSize: '14px', color: '#b3b3b3', marginTop: '8px' }}>
             This will analyze your music library and organize it by genres
           </p>
+        </div>
+
+        <div
+          style={{
+            marginBottom: '18px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '10px',
+            color: '#b3b3b3',
+            fontSize: '14px',
+            flexWrap: 'wrap'
+          }}
+        >
+          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: lastfmAvailable ? 'pointer' : 'not-allowed' }}>
+            <input
+              type="checkbox"
+              checked={enableLastfm}
+              disabled={!lastfmAvailable}
+              onChange={(e) => onEnableLastfmChange(e.target.checked)}
+              style={{ width: '16px', height: '16px' }}
+            />
+            Fetch genres from Last.fm (recommended)
+          </label>
+          {!lastfmAvailable && (
+            <span style={{ color: '#e22134', fontSize: '12px' }}>
+              (Last.fm API key not configured)
+            </span>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>

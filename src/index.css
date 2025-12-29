@@ -62,6 +62,9 @@ body {
 }
 
 .genre-filter input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
   padding: 8px 12px;
   border: 1px solid #404040;
   border-radius: 4px;
@@ -100,6 +103,11 @@ body {
 .genre-tag.active {
   background-color: #1db954;
   border-color: #1db954;
+}
+
+.genre-tag.exclude {
+  background-color: #e22134;
+  border-color: #e22134;
 }
 
 .songs-grid {

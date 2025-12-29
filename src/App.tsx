@@ -13,11 +13,45 @@ function App() {
     localStorage.getItem('spotify_access_token')
   );
 
-  const { songs, loading, loadingState, error, refreshData, getCacheStats, exportToPlaylist, refetch } = useSpotify(accessToken);
+  const [enableLastfm, setEnableLastfm] = useState<boolean>(() => {
+    const v = localStorage.getItem('enable_lastfm');
+    return v === null ? true : v === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('enable_lastfm', String(enableLastfm));
+  }, [enableLastfm]);
+
+  const lastfmAvailable = Boolean(import.meta.env.VITE_LASTFM_API_KEY);
+
+  const { songs, genreStats, loading, loadingState, error, refreshData, getCacheStats, exportToPlaylist, refetch } = useSpotify(accessToken, { enableLastfm });
   const [cacheStats, setCacheStats] = useState<{ count: number; size: number } | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
-  const { selectedGenre, setSelectedGenre, availableGenres, filteredSongs } = useGenreFilter(songs);
+  const [genreSource, setGenreSource] = useState<'spotify' | 'lastfm' | 'both'>(
+    (localStorage.getItem('genre_source') as any) || 'both'
+  );
+
+  const songsForUi = React.useMemo(() => {
+    return songs.map((s: any) => {
+      const spotifyGenres = s.spotifyGenres || s.genres || [];
+      const lastfmGenres = s.lastfmGenres || [];
+      const merged = Array.from(new Set([...(spotifyGenres || []), ...(lastfmGenres || [])]));
+      const genres =
+        genreSource === 'spotify'
+          ? spotifyGenres
+          : genreSource === 'lastfm'
+            ? lastfmGenres
+            : merged;
+      return { ...s, genres };
+    });
+  }, [songs, genreSource]);
+
+  useEffect(() => {
+    localStorage.setItem('genre_source', genreSource);
+  }, [genreSource]);
+
+  const { selectedGenre, setSelectedGenre, availableGenres, filteredSongs } = useGenreFilter(songsForUi);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -129,6 +163,9 @@ function App() {
     return (
       <HomePage
         accessToken={accessToken}
+        enableLastfm={enableLastfm}
+        lastfmAvailable={lastfmAvailable}
+        onEnableLastfmChange={setEnableLastfm}
         onStartAnalysis={handleStartAnalysis}
         onLogout={handleLogout}
       />
@@ -182,6 +219,75 @@ function App() {
         <p>Total liked songs: {songs.length}</p>
         <p>Available genres: {availableGenres.length}</p>
         <p>Filtered songs: {filteredSongs.length}</p>
+        <div style={{ marginTop: '12px', color: '#b3b3b3', fontSize: '12px' }}>
+          Genre source (used for filtering + tags):
+        </div>
+        <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setGenreSource('spotify')}
+            style={{
+              backgroundColor: genreSource === 'spotify' ? '#1db954' : 'transparent',
+              color: genreSource === 'spotify' ? '#ffffff' : '#b3b3b3',
+              border: '1px solid #404040',
+              padding: '6px 12px',
+              borderRadius: '999px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+          >
+            Spotify genres
+          </button>
+          <button
+            type="button"
+            onClick={() => setGenreSource('lastfm')}
+            disabled={!genreStats?.lastfmEnabled}
+            style={{
+              backgroundColor: genreSource === 'lastfm' ? '#1db954' : 'transparent',
+              color: genreSource === 'lastfm' ? '#ffffff' : '#b3b3b3',
+              border: '1px solid #404040',
+              padding: '6px 12px',
+              borderRadius: '999px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              opacity: !genreStats?.lastfmEnabled ? 0.5 : 1
+            }}
+          >
+            Last.fm tags
+          </button>
+          <button
+            type="button"
+            onClick={() => setGenreSource('both')}
+            style={{
+              backgroundColor: genreSource === 'both' ? '#1db954' : 'transparent',
+              color: genreSource === 'both' ? '#ffffff' : '#b3b3b3',
+              border: '1px solid #404040',
+              padding: '6px 12px',
+              borderRadius: '999px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+          >
+            Both
+          </button>
+        </div>
+        {genreStats && (
+          <div style={{ marginTop: '6px', color: '#b3b3b3', fontSize: '12px' }}>
+            <p>
+              Genre coverage (any source): {genreStats.totalSongs - genreStats.songsWithNoGenres} / {genreStats.totalSongs}{' '}
+              ({Math.round(((genreStats.totalSongs - genreStats.songsWithNoGenres) / Math.max(1, genreStats.totalSongs)) * 100)}%)
+            </p>
+            <p>
+              Sources: Spotify {genreStats.songsWithSpotifyGenres}, Last.fm {genreStats.songsWithLastfmGenres}
+              {!genreStats.lastfmEnabled && ' (Last.fm disabled)'}
+            </p>
+            {genreStats.songsWithNoGenres > 0 && (
+              <p>
+                Still missing: {genreStats.songsWithNoGenres} songs (no Spotify artist genres and no Last.fm tags)
+              </p>
+            )}
+          </div>
+        )}
         {cacheStats && (
           <p style={{ color: '#1db954' }}>
             ✓ Cache: {cacheStats.count} entries, {Math.round(cacheStats.size / 1024)} KB
